@@ -1,0 +1,3 @@
+limnoria>=2021.6.15
+requests>=2.25.1
+shazamio>=0.0.5
