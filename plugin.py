@@ -66,7 +66,7 @@ class StreamStuff(callbacks.Plugin):
         data = b''
         loops = 0
 
-        for chunk in response.iter_content(1024*20):
+        for chunk in response.iter_content(1024*25):
             loops += 1
             if loops >= 5 or not chunk:
                 break
@@ -115,7 +115,11 @@ class StreamStuff(callbacks.Plugin):
             irc.error("No stream provided, please configure this plugin.")
             return
 
-        irc.reply("One second, listening...", notice=True)
+        irc.reply(
+            "One second, listening...", 
+            notice=True,
+            private=True,
+        )
 
         # TODO >> return the object in memory instead of writing to file
         _ = self._fetch_mp3(url)
