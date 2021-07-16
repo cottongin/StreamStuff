@@ -33,6 +33,9 @@ import asyncio
 import requests
 from shazamio import Shazam
 
+# https://github.com/Horrendus/streamscrobbler-python
+from .streamscrobbler import get_server_info
+
 from supybot import callbacks
 from supybot.commands import wrap
 try:
@@ -81,7 +84,7 @@ class StreamStuff(callbacks.Plugin):
         return
 
     @classmethod
-    async def _parse_shazam(self):
+    async def _parse_shazam(self, stream_info=None):
         # this is also really dumb
 
         out = {}
@@ -92,15 +95,24 @@ class StreamStuff(callbacks.Plugin):
             print(err)
             pass
 
+        if stream_info:
+            append = " | {}".format(
+                stream_info.get('metadata', {}).get('song', '???')
+            )
+        else:
+            append = ""
+
         message = (
-            "Sorry, I couldn't find a match for what's currently playing!"
+            f"Sorry, Shazam could not identify what is playing.{append}"
         )
         match = out.get('track')
         if match:
-            message = "🎵 Now Playing: {title} by {subtitle} | {url}".format(
+            message = "🎵 Now Playing: {title} by {subtitle} | {url}{append}"
+            message = message.format(
                 title=match.get('title', 'Unknown'),
                 subtitle=match.get('subtitle', 'Unknown'),
-                url=match.get('share', {}).get('href', 'via Shazam')
+                url=match.get('share', {}).get('href', 'via Shazam'),
+                append=append,
             )
 
         return match, message
@@ -112,21 +124,37 @@ class StreamStuff(callbacks.Plugin):
         """
         url = self.registryValue('streamURL', msg.channel)
         if not url:
-            irc.error("No stream provided, please configure this plugin.")
-            return
+            return irc.error(
+                "No stream provided, please configure this plugin."
+            )
 
-        irc.reply(
-            "One second, listening...", 
-            notice=True,
-            private=True,
-        )
+        if self.registryValue('announceListening', msg.channel):
+            irc.reply(
+                "One second, listening...", 
+                notice=True,
+                private=True,
+            )
 
         # TODO >> return the object in memory instead of writing to file
         _ = self._fetch_mp3(url)
 
-        _, reply = asyncio.run(self._parse_shazam())
-        irc.reply(reply)
-        return
+        stream_info = get_server_info(url)
+
+        match, reply = asyncio.run(self._parse_shazam(stream_info=stream_info))
+        if not match:
+            # we do not have a match, how do we handle that?
+            target = msg.channel or msg.nick
+            if self.registryValue('mismatches.failSilently', msg.channel):
+                if self.registryValue('mismatches.failToNotice', msg.channel):
+                    return irc.reply(reply, notice=True, private=True)
+            elif self.registryValue('mismatches.failToNotice', msg.channel):
+                return irc.reply(reply, notice=True, private=True)
+            else:
+                # this might not strictly be necessary...
+                return irc.reply(reply, to=target)
+            return
+
+        return irc.reply(reply)
 
 Class = StreamStuff
 

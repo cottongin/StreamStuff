@@ -38,6 +38,43 @@ conf.registerChannelValue(
         ),
     ),
 )
+conf.registerChannelValue(
+    StreamStuff,
+    "announceListening",
+    registry.Boolean(
+        True,
+        _(
+            """Determines whether the bot should announce it will take a moment
+            to listen to the stream."""
+        ),
+    ),
+)
+
+conf.registerGroup(StreamStuff, "mismatches")
+conf.registerChannelValue(
+    StreamStuff.mismatches,
+    "failSilently",
+    registry.Boolean(
+        False,
+        _(
+            """Determines whether the bot should fail silently when the 
+            plugin cannot identify what is playing.
+            """
+        ),
+    ),
+)
+conf.registerChannelValue(
+    StreamStuff.mismatches,
+    "failToNotice",
+    registry.Boolean(
+        True,
+        _(
+            """Determines whether the bot should notice the caller when the 
+            plugin cannot identify what is playing.
+            """
+        ),
+    ),
+)
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
