@@ -106,12 +106,12 @@ class StreamStuff(callbacks.Plugin):
                 pass
 
 
+        append = ""
         if stream_info:
-            append = " | {}".format(
-                stream_info.get('metadata', {}).get('song', '???')
-            )
-        else:
-            append = ""
+            # print(stream_info)
+            metadata = stream_info.get('metadata', {}).get('song')
+            if metadata:
+                append = " | {}".format(metadata)
 
         message = (
             f"Sorry, Shazam could not identify what is playing.{append}"
