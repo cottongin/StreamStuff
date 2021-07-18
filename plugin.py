@@ -29,6 +29,8 @@
 ###
 
 import asyncio
+import io
+import tempfile
 
 import requests
 from shazamio import Shazam
@@ -61,12 +63,12 @@ class StreamStuff(callbacks.Plugin):
 
     @staticmethod
     def _fetch_mp3(url: str):
-        # this is really dumb
-        # TODO >> return object in memory
+        # this is (still) really dumb
+        # TODO: handle unexpected content better in the request
 
         response = requests.get(url, stream=True, timeout=5)
 
-        data = b''
+        data = bytes()
         loops = 0
 
         for chunk in response.iter_content(1024*25):
@@ -75,25 +77,34 @@ class StreamStuff(callbacks.Plugin):
                 break
             data += chunk
 
-        if not data:
-            return
-
-        with open('stream.mp3', 'wb') as fd:
-            fd.write(data)
-
-        return
+        return data
 
     @classmethod
-    async def _parse_shazam(self, stream_info=None):
+    async def _parse_shazam(self, stream_info=None, audio_segment=None):
         # this is also really dumb
 
         out = {}
-        try:
-            shazam = Shazam()
-            out = await shazam.recognize_song('stream.mp3')
-        except Exception as err:
-            print(err)
-            pass
+        shazam = Shazam()
+        if not audio_segment:
+            # TODO: fix this so it honors fs permissions etc
+            try:
+                out = await shazam.recognize_song('stream.mp3')
+            except Exception as err:
+                print(err)
+                pass
+        else:
+            try:
+                # so we make a NamedTemporaryFile because on *NIX we don't
+                # always get a path or link to a regular TemporaryFile
+                with tempfile.NamedTemporaryFile() as fake_file:
+                    # TODO: abstract this out into a AudioSegmentClass
+                    fake_file.write(audio_segment)
+                    fake_file.seek(0)
+                    out = await shazam.recognize_song(fake_file.name)
+            except Exception as err:
+                print(err)
+                pass
+
 
         if stream_info:
             append = " | {}".format(
@@ -135,12 +146,16 @@ class StreamStuff(callbacks.Plugin):
                 private=True,
             )
 
-        # TODO >> return the object in memory instead of writing to file
-        _ = self._fetch_mp3(url)
+        audio = self._fetch_mp3(url)
 
         stream_info = get_server_info(url)
 
-        match, reply = asyncio.run(self._parse_shazam(stream_info=stream_info))
+        match, reply = asyncio.run(
+            self._parse_shazam(
+                stream_info=stream_info,
+                audio_segment=audio,
+            )
+        )
         if not match:
             # we do not have a match, how do we handle that?
             target = msg.channel or msg.nick
