@@ -31,6 +31,7 @@
 import asyncio
 import io
 import tempfile
+import sys, traceback
 
 import requests
 from shazamio import Shazam
@@ -90,7 +91,8 @@ class StreamStuff(callbacks.Plugin):
             try:
                 out = await shazam.recognize_song('stream.mp3')
             except Exception as err:
-                print(err)
+                print(f"[FILE method] {err}")
+                traceback.print_exc(file=sys.stdout)
                 pass
         else:
             try:
@@ -102,13 +104,13 @@ class StreamStuff(callbacks.Plugin):
                     fake_file.seek(0)
                     out = await shazam.recognize_song(fake_file.name)
             except Exception as err:
-                print(err)
+                print(f"[FAKE method] {err}")
+                traceback.print_exc(file=sys.stdout)
                 pass
 
 
         append = ""
         if stream_info:
-            # print(stream_info)
             metadata = stream_info.get('metadata', {}).get('song')
             if metadata:
                 append = " | {}".format(metadata)

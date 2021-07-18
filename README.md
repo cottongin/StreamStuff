@@ -16,3 +16,9 @@ From IRC:
 <you> nowplaying
 <bot> 🎵 Now Playing: A Song by Some Artist | via Shazam
 ```
+
+### Configuration
+You can configure a number of different output options, either globally or per channel, using Limnoria's built-in configuration management.
+
+```
+<you> config channel #yourchannel supybot.plugins.
