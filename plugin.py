@@ -33,6 +33,8 @@ import io
 import tempfile
 import sys, traceback
 
+import time
+
 import requests
 from shazamio import Shazam
 
@@ -67,16 +69,19 @@ class StreamStuff(callbacks.Plugin):
         # this is (still) really dumb
         # TODO: handle unexpected content better in the request
 
-        response = requests.get(url, stream=True, timeout=5)
+        data = None
 
-        data = bytes()
-        loops = 0
+        with requests.Session() as conn:
+            response = conn.get(url, stream=True, timeout=5)
 
-        for chunk in response.iter_content(1024*25):
-            loops += 1
-            if loops >= 5 or not chunk:
-                break
-            data += chunk
+            data = bytes()
+            loops = 0
+
+            for chunk in response.iter_content(1024*25):
+                loops += 1
+                if loops >= 25 or not chunk:
+                    break
+                data += chunk
 
         return data
 
@@ -101,7 +106,6 @@ class StreamStuff(callbacks.Plugin):
                 with tempfile.NamedTemporaryFile() as fake_file:
                     # TODO: abstract this out into a AudioSegmentClass
                     fake_file.write(audio_segment)
-                    fake_file.seek(0)
                     out = await shazam.recognize_song(fake_file.name)
             except Exception as err:
                 print(f"[FAKE method] {err}")
