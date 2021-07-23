@@ -77,7 +77,7 @@ class StreamStuff(callbacks.Plugin):
             data = bytes()
             loops = 0
 
-            for chunk in response.iter_content(1024*25):
+            for chunk in response.iter_content(1024*5):
                 loops += 1
                 if loops >= 25 or not chunk:
                     break
